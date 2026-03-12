@@ -15,8 +15,22 @@ st.markdown("""
     [data-testid="stSidebar"] { display: none; }
     .stMarkdown, p, span, div, label, .stText { color: #1E293B !important; }
     h1, h2, h3 { color: #0F172A !important; font-weight: 800 !important; }
-    .stButton > button { background-color: #334155 !important; color: #FFFFFF !important; border-radius: 6px !important; font-weight: 600; width: 100%; transition: all 0.3s ease; }
-    .stButton > button:hover { background-color: #0F172A !important; border-color: #38BDF8 !important; color: #38BDF8 !important; }
+    
+    /* Fixed Button CSS to ensure text is white and readable */
+    .stButton > button { 
+        background-color: #334155 !important; 
+        color: #FFFFFF !important; 
+        border-radius: 6px !important; 
+        font-weight: 600; 
+        width: 100%; 
+        border: none !important;
+        transition: all 0.3s ease; 
+    }
+    .stButton > button * { color: #FFFFFF !important; } /* Forces inner text to be white */
+    
+    .stButton > button:hover { background-color: #0F172A !important; }
+    .stButton > button:hover * { color: #38BDF8 !important; } /* Changes to light blue on hover */
+    
     div[data-testid="stPopover"] { width: 100%; }
 </style>
 """, unsafe_allow_html=True)
@@ -35,9 +49,10 @@ if "last_response" not in st.session_state: st.session_state["last_response"] = 
 if "processed_source" not in st.session_state: st.session_state["processed_source"] = None
 if "chat_count" not in st.session_state: st.session_state["chat_count"] = 1
 if "suggested_qs" not in st.session_state: st.session_state["suggested_qs"] = []
-if "data_summary" not in st.session_state: st.session_state["data_summary"] = "No summary generated."
+if "crisp_summary" not in st.session_state: st.session_state["crisp_summary"] = "No crisp summary generated."
+if "detail_summary" not in st.session_state: st.session_state["detail_summary"] = "No detailed summary generated."
 
-# --- CORE LOGIC: PROCESS PDF, SMART FAQs, & AUTOMATED SUMMARY ---
+# --- CORE LOGIC: PROCESS PDF, SMART FAQs, & SUMMARIES ---
 def process_pdf(source_path, source_name):
     with st.spinner(f"Ingesting & Analyzing '{source_name}'..."):
         loader = PyPDFLoader(source_path)
@@ -50,7 +65,6 @@ def process_pdf(source_path, source_name):
         vectorstore = FAISS.from_documents(chunks, embeddings)
         vectorstore.save_local("faiss_index")
         
-        # SMART GENERATION (Reads intro to guess intent & summarize)
         try:
             llm = ChatGroq(model_name="llama-3.1-8b-instant", temperature=0.2, groq_api_key=GROQ_API_KEY)
             preview_text = "\n".join([c.page_content for c in chunks[:4]])
@@ -60,41 +74,59 @@ def process_pdf(source_path, source_name):
             faq_response = llm.invoke(prompt_faq)
             st.session_state["suggested_qs"] = [q.strip() for q in faq_response.content.split('\n') if q.strip()]
             
-            # 2. Summary Prompt
-            prompt_summary = f"Provide a comprehensive, in-depth point-wise summary of the core themes, entities, and purpose of the following document excerpt. Text: {preview_text}"
-            summary_response = llm.invoke(prompt_summary)
-            st.session_state["data_summary"] = summary_response.content
+            # 2. Crisp Summary Prompt
+            prompt_crisp = f"Provide a very short, crisp, 3-sentence summary of the following document excerpt. Text: {preview_text}"
+            crisp_response = llm.invoke(prompt_crisp)
+            st.session_state["crisp_summary"] = crisp_response.content
+
+            # 3. Detailed Summary Prompt
+            prompt_detail = f"Provide a comprehensive, in-depth point-wise summary of the core themes, entities, and purpose of the following document excerpt. Text: {preview_text}"
+            detail_response = llm.invoke(prompt_detail)
+            st.session_state["detail_summary"] = detail_response.content
+            
         except:
             st.session_state["suggested_qs"] = ["1. What is the main topic?", "2. Summarize key metrics.", "3. Identify major risks.", "4. What is the conclusion?", "5. List the key entities."]
-            st.session_state["data_summary"] = "Summary generation failed. Data loaded successfully."
+            st.session_state["crisp_summary"] = "Summary generation failed."
+            st.session_state["detail_summary"] = "Summary generation failed. Data loaded successfully."
 
         st.session_state["vector_ready"] = True
         st.session_state["processed_source"] = source_name
 
 # --- HEADER ---
-st.title("⬡ InsightEngine Elite")
-st.markdown("*An enterprise-grade Agentic RAG system for high-fidelity document synthesis and intelligence extraction.*")
+st.title("⬡ InsightEngine")
+st.markdown("*An intelligent AI assistant that reads your documents and answers questions with exact facts.*")
 
 # --- 5-COLUMN TOP NAVIGATION ---
 c_doc, c_data, c_llm, c_exp, c_auth = st.columns(5)
 
 with c_doc:
     with st.expander("🗂️ Documentation"):
-        st.markdown("**What is this?**\nA secure AI workspace that reads your private documents and answers complex queries with zero hallucinations.")
+        st.markdown("**What is InsightEngine?**\nInsightEngine is a powerful tool that allows you to upload any PDF document and instantly ask questions about it. Instead of relying on general AI knowledge, this tool strictly reads *your* document to give you factual, exact answers.")
         with st.popover("🔍 See In-Detail Architecture"):
             st.markdown("""
-            ### 🏗️ Complete System Architecture
-            InsightEngine relies on an advanced **Retrieval-Augmented Generation (RAG)** pipeline:
+            ### 🏗️ Complete System Architecture & Documentation
             
-            **1. Data Ingestion (PyPDFLoader):** Raw text is stripped from the uploaded PDF document.
-            **2. Semantic Slicing (RecursiveCharacterTextSplitter):** The text is divided into 800-character chunks with a 100-character overlap to preserve context between pages.
-            **3. Vectorization (HuggingFace all-MiniLM-L6-v2):** Chunks are mathematically embedded into high-dimensional vectors.
-            **4. Indexing (FAISS):** Vectors are stored in a Meta FAISS database for ultra-fast similarity search.
-            **5. Cognitive Synthesis (Groq Llama-3):** When a user asks a query, the system finds the top 4 most mathematically relevant text chunks and sends them to the LLM. The LLM is strictly instructed to answer *only* using that context.
+            InsightEngine is built on a state-of-the-art **Retrieval-Augmented Generation (RAG)** pipeline. This solves the primary issue with traditional LLMs: "Hallucinations" (making things up). By forcing the AI to read a retrieved text chunk before answering, accuracy reaches near 100%.
+
+            **Phase 1: Ingestion & Processing**
+            * **Document Loader (LangChain PyPDFLoader):** Extracts raw text from complex PDF layouts.
+            * **Semantic Chunking:** The AI cannot read a 500-page book in one go. We use a `RecursiveCharacterTextSplitter` to cut the document into 800-character blocks. We leave a 100-character overlap between blocks so sentences at the edges don't lose context.
+            
+            **Phase 2: Mathematical Embedding**
+            * **HuggingFace MiniLM-L6-v2:** We pass the text chunks through a neural network that converts words into complex numerical coordinates (Vectors). 
+            * **FAISS Vector Database:** Created by Meta, this database stores those numbers. When you ask a question, your question is also turned into numbers, and FAISS instantly finds the chunks that are mathematically closest to your question.
+
+            **Phase 3: Generation (Groq Llama 3)**
+            * Once the top 4 most relevant text blocks are found, they are bundled together and sent to the **Groq Llama 3** model. The prompt strictly instructs the AI: *"Using ONLY the provided text, answer the user's question."*
+            
+            **Use Cases:**
+            * **Legal:** Extracting specific clauses or liabilities from contracts.
+            * **Financial:** Summarizing earnings reports or identifying risk factors.
+            * **Academic:** Synthesizing literature reviews from massive research papers.
             """)
 
 with c_data:
-    with st.expander("📥 Knowledge Base"):
+    with st.expander("📥 Get Data"):
         uploaded_file = st.file_uploader("Upload PDF", type="pdf", label_visibility="collapsed")
         sample_choice = st.selectbox("Or pick sample:", ["None", "Tesla 2023 Annual Report", "AI Act Final Draft", "Bitcoin Whitepaper", "UN Climate Report"])
         
@@ -110,20 +142,20 @@ with c_data:
             st.rerun()
 
 with c_llm:
-    with st.expander("⚡ Neural Settings"):
-        st.caption("Fine-tune the reasoning engine's behavior and computational capacity.")
+    with st.expander("⚡ LLM Settings"):
+        st.caption("Adjust how the AI thinks and responds.")
         ai_temp = st.slider("Temperature (0=Fact, 1=Creative)", 0.0, 1.0, 0.1)
-        model_choice = st.selectbox("AI Brain Model", ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"])
+        model_choice = st.selectbox("AI Model", ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"])
 
 with c_exp:
-    with st.expander("💾 Export State"):
+    with st.expander("💾 Export"):
         st.download_button("Download Last AI Response", st.session_state["last_response"], file_name="insight_export.txt")
         if st.button("Reset Entire System"):
             st.session_state.clear()
             st.rerun()
 
 with c_auth:
-    with st.expander("🛠️ Developer"):
+    with st.expander("🛠️ Author"):
         st.markdown("**Siddhesh Kulkarni**")
         st.caption("AI Solutions Architect")
         st.markdown("✉️ [Contact via Email](mailto:kulkarnisiddhesh2626@gmail.com)")
@@ -134,20 +166,20 @@ st.divider()
 # --- WORKSPACE & CHAT TABS ---
 col_ws, col_add, col_del = st.columns([0.6, 0.2, 0.2])
 with col_ws:
-    st.markdown("### 🧠 Synthesis Workspace")
+    st.markdown("### 🧠 Workspace")
 with col_add:
-    if st.button("⊞ New Instance"):
+    if st.button("⊞ New Chat Window"):
         st.session_state["chat_count"] += 1
         st.rerun()
 with col_del:
-    if st.button("⊟ Terminate Instance"):
+    if st.button("⊟ Close Chat Window"):
         if st.session_state["chat_count"] > 1:
             st.session_state["chat_count"] -= 1
             st.rerun()
         else:
             st.warning("Cannot close the primary workspace.")
 
-chat_tabs = st.tabs([f"Terminal {i+1}" for i in range(st.session_state["chat_count"])])
+chat_tabs = st.tabs([f"Conversation {i+1}" for i in range(st.session_state["chat_count"])])
 
 def run_query(query):
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -163,29 +195,38 @@ def run_query(query):
 for i, tab in enumerate(chat_tabs):
     with tab:
         if st.session_state["vector_ready"]:
-            # Feature: Split Layout for Summary & FAQs
-            c_sum, c_faq = st.columns([0.3, 0.7])
+            # Feature: Split Layout for TWO Summary Buttons
+            c_crisp, c_detail, c_empty = st.columns([0.25, 0.25, 0.5])
             
-            with c_sum:
-                with st.popover("📊 Execute Data Summary"):
-                    st.markdown(f"**Automated Analysis for:** {st.session_state['processed_source']}")
-                    st.markdown(st.session_state["data_summary"])
+            with c_crisp:
+                with st.popover("📊 Crisp Summary"):
+                    st.markdown(f"**Quick Overview of:** {st.session_state['processed_source']}")
+                    st.write(st.session_state["crisp_summary"])
+            
+            with c_detail:
+                with st.popover("📑 In-Detail Summary"):
+                    st.markdown(f"**Deep Dive Analysis of:** {st.session_state['processed_source']}")
+                    st.markdown(st.session_state["detail_summary"])
                     
-            with c_faq:
-                with st.expander("🎯 Smart Queries (Click to Auto-Run)", expanded=True):
-                    # To capture which button was clicked
-                    clicked_q = None
-                    for j, q in enumerate(st.session_state["suggested_qs"]):
-                        if st.button(q, key=f"faq_{i}_{j}"):
-                            clicked_q = q
+            st.markdown("---")
             
-            # Chat Input (Accepts typed input OR the clicked FAQ)
-            user_q = st.text_input("Enter a custom query or click a Smart Query above:", key=f"chat_input_{i}")
+            # --- CHAT INTERFACE ---
+            # 1. Manual Input Box
+            user_q = st.text_input("💬 Type your custom question here and press Enter:", key=f"chat_input_{i}")
+            
+            # 2. Suggested Clickable Questions
+            clicked_q = None
+            with st.expander("🎯 Suggested Questions (Click to Auto-Run)", expanded=True):
+                for j, q in enumerate(st.session_state["suggested_qs"]):
+                    if st.button(q, key=f"faq_{i}_{j}"):
+                        clicked_q = q
+            
+            # Run whichever input is provided
             final_query = clicked_q or user_q
             
             if final_query:
-                with st.spinner("Compiling insights..."):
+                with st.spinner("Finding the answer..."):
                     result = run_query(final_query)
-                    st.success(f"**Query:** {final_query}\n\n**Result:**\n{result}")
+                    st.success(f"**Question:** {final_query}\n\n**Answer:**\n{result}")
         else:
-            st.info("👈 Please initialize the Knowledge Base (Get Data) at the top of the screen.")
+            st.info("👈 Please select a document from the 'Get Data' menu at the top to begin.")
