@@ -152,3 +152,14 @@ def run_query(query):
 with chat_tab1:
     if st.session_state["vector_ready"]:
         q1 = st.text_input("Query Alpha:", key="q1")
+        if q1: st.success(run_query(q1))
+    else: st.info("Initialize data to start.")
+
+with chat_tab2:
+    if st.session_state["vector_ready"]:
+        q2 = st.text_input("Query Beta:", key="q2")
+        if q2: st.info(run_query(q2))
+    else: st.info("Initialize data to start.")
+
+with chat_tab3:
+    st.markdown("Compare results from Alpha and Beta sequences here.")
