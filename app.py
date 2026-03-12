@@ -8,149 +8,176 @@ from langchain_groq import ChatGroq
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # --- PAGE CONFIGURATION ---
-st.set_page_config(page_title="InsightEngine", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="InsightEngine", page_icon="💠", layout="wide")
 
-# --- CUSTOM CSS: CLEAN LIGHT THEME ---
+# --- CUSTOM CSS: THE "SAFFRON & SLATE" THEME ---
 st.markdown("""
 <style>
-    .stApp { background-color: #F4F6F9 !important; }
-    [data-testid="stSidebar"] { background-color: #FFFFFF !important; border-right: 1px solid #E0E4E8 !important; }
-    .stMarkdown, p, span, div, label, .stText { color: #2C3E50 !important; }
-    h1, h2, h3, h4 { color: #1A252F !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 700 !important; }
-    .stButton > button { background-color: #0056D2 !important; color: #FFFFFF !important; font-weight: 600 !important; border: none !important; border-radius: 6px !important; padding: 8px 16px !important; width: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; }
-    .stButton > button:hover { background-color: #0041A3 !important; box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important; }
-    .stTextInput > div > div > input, .stTextArea > div > div > textarea { background-color: #FFFFFF !important; color: #2C3E50 !important; border: 1px solid #CBD5E1 !important; border-radius: 6px !important; }
-    [data-testid="stMetricValue"] { color: #0056D2 !important; }
-    .streamlit-expanderHeader { background-color: #FFFFFF !important; color: #2C3E50 !important; border-bottom: 1px solid #E0E4E8; }
+    /* Gradient Background: Light Yellow to Light Orange */
+    .stApp {
+        background: linear-gradient(135deg, #FFFDE4 0%, #FFE5B4 100%) !important;
+    }
+
+    /* Top-Nav Simulation (Removing Sidebar padding) */
+    [data-testid="stSidebar"] {
+        display: none;
+    }
+    
+    /* Global Text: Dark Slate */
+    .stMarkdown, p, span, div, label, .stText {
+        color: #2F4F4F !important;
+    }
+
+    /* Professional Headers */
+    h1, h2, h3 {
+        color: #D35400 !important;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: 800 !important;
+    }
+
+    /* Export Button Positioning (Top Right) */
+    .export-container {
+        position: absolute;
+        top: 0px;
+        right: 0px;
+        z-index: 999;
+    }
+
+    /* High-Contrast Professional Buttons */
+    .stButton > button {
+        background-color: #D35400 !important; 
+        color: #FFFFFF !important;      
+        border-radius: 8px !important;
+        border: none !important;
+        font-weight: bold;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# --- SESSION STATE INITIALIZATION ---
-if "vector_ready" not in st.session_state:
-    st.session_state["vector_ready"] = False
-if "raw_text" not in st.session_state:
-    st.session_state["raw_text"] = "Upload a document to see preview."
-if "last_response" not in st.session_state:
-    st.session_state["last_response"] = "No queries made yet."
+# --- SESSION STATE ---
+if "vector_ready" not in st.session_state: st.session_state["vector_ready"] = False
+if "raw_text" not in st.session_state: st.session_state["raw_text"] = ""
+if "last_response" not in st.session_state: st.session_state["last_response"] = "No data yet."
 
-# --- SECRETS MANAGEMENT ---
-# This checks if the API key is configured in Streamlit Cloud
-try:
-    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
-except:
-    GROQ_API_KEY = None
+# --- TOP BAR: EXPORT & BRANDING ---
+col_title, col_export = st.columns([0.8, 0.2])
+with col_title:
+    st.title("💠 InsightEngine // Elite")
+with col_export:
+    st.download_button(
+        label="📥 Export Last Intelligence",
+        data=st.session_state["last_response"],
+        file_name="insight_export.txt",
+        mime="text/plain",
+    )
 
-# --- MAIN DASHBOARD ---
-st.title("⚡ InsightEngine // Cloud Edition")
+# --- NEW TOP-DOWN NAVIGATION (SIMULATED SIDEBAR) ---
+st.markdown("### 🛠️ Strategic Control Center")
+with st.expander("📂 Control Panel & Configuration", expanded=False):
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown("#### 💠 Model Tuning")
+        ai_temp = st.slider("Temperature", 0.0, 1.0, 0.1)
+        with st.popover("❔ How this works"):
+            st.write("**Temperature** controls randomness.")
+            st.write("* **0.1 (Strict):** Best for technical manuals, medical data, and legal PDFs.")
+            st.write("* **0.8 (Creative):** Best for summarizing stories or brainstorming marketing copy.")
+    
+    with c2:
+        st.markdown("#### 💠 Document Ingestion")
+        uploaded_file = st.file_uploader("Upload PDF Payload", type="pdf", label_visibility="collapsed")
+        process_button = st.button("🚀 Initialize Neural Index")
+        
+    with c3:
+        st.markdown("#### 💠 System Guardrails")
+        max_tokens = st.select_slider("Response Depth", options=[256, 512, 1024, 2048], value=1024)
+        with st.popover("❔ Understanding Depth"):
+            st.write("Limits the length of the AI's output to prevent 'rambling' and save API credits.")
 
-with st.expander("ℹ️ What is InsightEngine?", expanded=False):
+# --- MIDDLE SECTION: INFORMATION HUB ---
+tab1, tab2, tab3, tab4 = st.tabs(["📘 About", "🏗️ Architecture", "📝 Preview", "👨‍💻 Author"])
+
+with tab1:
     st.markdown("""
-    **InsightEngine** synthesizes complex PDFs using Cloud LLMs. 
-    **Capabilities:** Fast data extraction, format-agnostic chunking, and contextual reasoning via Groq LPUs.
+    ### 💠 High-Fidelity Retrieval Augmented Generation (RAG)
+    InsightEngine is a professional-grade intelligence tool designed to bridge the gap between static documents and actionable insights. Unlike standard LLMs, it uses **Semantic Chunking** to ensure the bot doesn't just read words, but understands context.
+    
+    **🎯 Strategic Usecases:**
+    * **Legal Discovery:** Cross-reference clauses across 100+ page contracts in seconds.
+    * **Academic Synthesis:** Analyze research papers for methodology vs. results instantly.
+    * **Financial Audits:** Extract quarterly earnings trends from complex annual reports.
+    * **Technical Support:** Convert dense hardware manuals into a searchable troubleshooting bot.
+    """)
+
+with tab2:
+    st.markdown("### 🏗️ Advanced Neural Pipeline")
+    
+    st.markdown("""
+    1. **Preprocessing:** PDF is loaded via `PyPDFLoader` and cleaned of artifacts.
+    2. **Granular Chunking:** `RecursiveCharacterTextSplitter` creates overlapping segments (800 chars) to maintain narrative flow.
+    3. **Vectorization:** `HuggingFace (all-MiniLM-L6-v2)` transforms text into 384-dimensional mathematical vectors.
+    4. **Indexing:** `FAISS` (Facebook AI Similarity Search) builds a high-speed local vector database.
+    5. **Synthesis:** `Llama-3-8b` via **Groq LPUs** performs high-speed reasoning on retrieved context.
+    """)
+
+with tab3:
+    st.text_area("Live Data Stream", st.session_state["raw_text"][:2000], height=250, placeholder="Preview will appear after indexing...")
+
+with tab4:
+    st.markdown("### 💠 Author Intelligence")
+    st.info("""
+    **Name:** Siddhesh  
+    **Email:** [Your Email ID]  
+    **Professional Profile:** [LinkedIn Link]  
+    *Expertise in Agentic RAG Systems and Local LLM Deployment.*
     """)
 
 st.divider()
 
-if not GROQ_API_KEY:
-    st.error("🚨 Configuration Error: GROQ_API_KEY is missing. Please add it to your Streamlit Secrets.")
+# --- PROCESSING LOGIC ---
+try:
+    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+except:
+    st.error("Missing GROQ_API_KEY in Secrets.")
     st.stop()
 
-# --- SIDEBAR CONTROLS ---
-with st.sidebar:
-    st.header("⚙️ Control Panel")
-    st.markdown("**LLM Parameters**")
-    ai_temp = st.slider("Creativity (Temperature)", min_value=0.0, max_value=1.0, value=0.1, step=0.1)
-    st.divider()
-    
-    uploaded_file = st.file_uploader("Drop PDF Payload", type="pdf")
-    process_button = st.button("Initialize Index")
-    st.divider()
-    
-    with st.expander("🛠️ System Architecture"):
-        st.markdown("""
-        **Data Flow:**
-        1. **Ingestion:** PyPDF2 
-        2. **Chunking:** Recursive (800 chars)
-        3. **Embedding:** HuggingFace (all-MiniLM-L6-v2) 
-        4. **Storage:** FAISS Vector Index
-        5. **Reasoning:** Llama-3-8b via Groq API
-        """)
-        
-    with st.expander("👀 Data Preview"):
-        st.text_area("Raw Text (First 1k chars)", st.session_state["raw_text"][:1000], height=200, disabled=True)
-
-    with st.expander("💾 Export Data"):
-        st.download_button(label="Download Last Response", data=st.session_state["last_response"], file_name="insight_engine_export.txt", mime="text/plain")
-        
-    if st.button("🚨 Reset Engine"):
-        st.session_state.clear()
-        st.rerun()
-
-# --- CORE PROCESSING LOGIC ---
 if uploaded_file and process_button:
-    try:
-        start_time = time.time()
+    with st.status("💠 Building Intelligence Matrix...", expanded=True) as status:
         with open("temp.pdf", "wb") as f:
             f.write(uploaded_file.getbuffer())
+        st.write("Reading PDF...")
+        loader = PyPDFLoader("temp.pdf")
+        data = loader.load()
+        st.session_state["raw_text"] = "\n".join([p.page_content for p in data])
         
-        with st.spinner("Extracting datastream..."):
-            loader = PyPDFLoader("temp.pdf")
-            data = loader.load()
-            st.session_state["raw_text"] = "\n".join([page.page_content for page in data])
-
+        st.write("Chunking Text...")
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
         chunks = text_splitter.split_documents(data)
-
-        with st.spinner("Embedding into FAISS matrix (HuggingFace)..."):
-            embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-            vectorstore = FAISS.from_documents(chunks, embeddings)
-            vectorstore.save_local("faiss_index")
         
-        end_time = time.time()
-        st.success("✅ Datastream Indexed Successfully.")
+        st.write("Generating Embeddings...")
+        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        vectorstore = FAISS.from_documents(chunks, embeddings)
+        vectorstore.save_local("faiss_index")
+        
         st.session_state["vector_ready"] = True
-        
-        col1, col2 = st.columns(2)
-        col1.metric("Chunks Created", len(chunks))
-        col2.metric("Processing Latency", f"{end_time - start_time:.2f} sec")
+        status.update(label="✅ System Ready", state="complete")
 
-    except Exception as e:
-        st.error(f"System Fault: {str(e)}")
-
-# --- CHAT / REASONING INTERFACE ---
+# --- CHAT INTERFACE ---
 if st.session_state["vector_ready"]:
-    user_query = st.text_input("Enter your query sequence:")
-    
+    user_query = st.text_input("💠 Query the Knowledge Base:")
     if user_query:
-        try:
-            query_start = time.time()
-            with st.spinner("Compiling answer via Groq..."):
-                embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-                db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-                docs = db.similarity_search(user_query, k=4)
-                context = "\n\n".join([d.page_content for d in docs])
-                
-                # Using Groq Cloud API instead of local Ollama
-                llm = ChatGroq(model_name="llama3-8b-8192", temperature=ai_temp, groq_api_key=GROQ_API_KEY)
-                prompt = f"Use the following context to answer the question accurately.\n\nContext: {context}\n\nQuestion: {user_query}"
-                
-                response = llm.invoke(prompt)
-                final_answer = response.content
-                query_end = time.time()
-                
-                st.session_state["last_response"] = f"Query: {user_query}\n\nAnswer: {final_answer}"
-                
-                st.markdown("### 🧠 Neural Output:")
-                st.info(final_answer)
-                st.caption(f"⏱️ Inference Latency: {query_end - query_start:.2f} seconds")
-                
-                with st.expander("View Source Chunks"):
-                    for i, doc in enumerate(docs):
-                        st.markdown(f"**Source {i+1}:**")
-                        st.write(doc.page_content)
-                        st.divider()
-                        
-        except Exception as e:
-            st.error(f"Inference Error: {str(e)}")
+        with st.spinner("💠 Synthesizing Answer..."):
+            embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+            docs = db.similarity_search(user_query, k=4)
+            context = "\n\n".join([d.page_content for d in docs])
+            
+            llm = ChatGroq(model_name="llama3-8b-8192", temperature=ai_temp, groq_api_key=GROQ_API_KEY)
+            prompt = f"System: You are an elite analyst. Use the context to answer precisely.\nContext: {context}\nQuestion: {user_query}"
+            
+            response = llm.invoke(prompt)
+            st.session_state["last_response"] = f"Query: {user_query}\n\nAnswer: {response.content}"
+            st.markdown("### 🧠 Result:")
+            st.success(response.content)
 else:
-    st.info("System idle. Awaiting document upload.")
+    st.info("💠 Upload a document and initialize the engine to begin.")
