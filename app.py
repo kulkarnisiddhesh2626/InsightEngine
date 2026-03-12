@@ -151,4 +151,4 @@ def run_query(query):
 
 with chat_tab1:
     if st.session_state["vector_ready"]:
-        q1 = st.text_input("Query Alpha:", key="q
+        q1 = st.text_input("Query Alpha:", key="q1")
