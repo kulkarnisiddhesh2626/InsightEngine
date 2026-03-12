@@ -11,13 +11,14 @@ st.set_page_config(page_title="InsightEngine Elite", page_icon="⬡", layout="wi
 
 st.markdown("""
 <style>
+    /* Global Background */
     .stApp { background: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%) !important; }
     [data-testid="stSidebar"] { display: none; }
     .stMarkdown, p, span, div, label, .stText { color: #1E293B !important; }
     h1, h2, h3 { color: #0F172A !important; font-weight: 800 !important; }
     
-    /* Fixed Button CSS to ensure text is white and readable */
-    .stButton > button { 
+    /* Primary Buttons (Top Menu, Summaries, New/Close Chat) */
+    button[kind="primary"] { 
         background-color: #334155 !important; 
         color: #FFFFFF !important; 
         border-radius: 6px !important; 
@@ -26,12 +27,55 @@ st.markdown("""
         border: none !important;
         transition: all 0.3s ease; 
     }
-    .stButton > button * { color: #FFFFFF !important; } /* Forces inner text to be white */
-    
-    .stButton > button:hover { background-color: #0F172A !important; }
-    .stButton > button:hover * { color: #38BDF8 !important; } /* Changes to light blue on hover */
-    
+    button[kind="primary"] * { color: #FFFFFF !important; } 
+    button[kind="primary"]:hover { background-color: #0F172A !important; }
+    button[kind="primary"]:hover * { color: #38BDF8 !important; } 
+
+    /* Secondary Buttons (Suggested Questions - Transparent Background) */
+    button[kind="secondary"] {
+        background-color: transparent !important;
+        color: #1E293B !important;
+        border: 1px solid transparent !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        padding: 4px 10px !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease;
+    }
+    button[kind="secondary"] * { color: inherit !important; }
+    button[kind="secondary"]:hover {
+        background-color: rgba(226, 232, 240, 0.6) !important;
+        color: #0F172A !important;
+        border-left: 3px solid #38BDF8 !important;
+    }
+
+    /* Darker Border for Text Input Box */
+    div[data-baseweb="input"] > div {
+        border: 2px solid #475569 !important;
+        background-color: #FFFFFF !important;
+        border-radius: 8px !important;
+    }
+
+    /* Popover width fix */
     div[data-testid="stPopover"] { width: 100%; }
+
+    /* Workspace Contrast Header */
+    .workspace-header {
+        background: rgba(203, 213, 225, 0.4);
+        padding: 15px 20px;
+        border-radius: 8px;
+        border-left: 6px solid #334155;
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+    .workspace-divider {
+        height: 3px;
+        background-color: #94A3B8;
+        border: none;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        border-radius: 2px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -69,8 +113,8 @@ def process_pdf(source_path, source_name):
             llm = ChatGroq(model_name="llama-3.1-8b-instant", temperature=0.2, groq_api_key=GROQ_API_KEY)
             preview_text = "\n".join([c.page_content for c in chunks[:4]])
             
-            # 1. FAQ Prompt
-            prompt_faq = f"Generate exactly 5 distinct, highly relevant questions a user could ask to get valuable insights from this text. Make them concise. Return them as a numbered list without intros. Text: {preview_text}"
+            # 1. FAQ Prompt (Now generating 10 questions)
+            prompt_faq = f"Generate exactly 10 distinct, highly relevant questions a user could ask to get valuable insights from this text. Make them concise. Return them as a numbered list without intros. Text: {preview_text}"
             faq_response = llm.invoke(prompt_faq)
             st.session_state["suggested_qs"] = [q.strip() for q in faq_response.content.split('\n') if q.strip()]
             
@@ -85,7 +129,13 @@ def process_pdf(source_path, source_name):
             st.session_state["detail_summary"] = detail_response.content
             
         except:
-            st.session_state["suggested_qs"] = ["1. What is the main topic?", "2. Summarize key metrics.", "3. Identify major risks.", "4. What is the conclusion?", "5. List the key entities."]
+            st.session_state["suggested_qs"] = [
+                "1. What is the primary subject of this document?", "2. Can you summarize the key metrics?",
+                "3. Identify the major risks mentioned.", "4. What is the overarching conclusion?",
+                "5. List the key entities or organizations involved.", "6. What are the main objectives outlined?",
+                "7. Are there any financial figures discussed?", "8. What methodologies or processes are described?",
+                "9. Highlight any regulatory or compliance factors.", "10. What are the next steps or recommendations?"
+            ]
             st.session_state["crisp_summary"] = "Summary generation failed."
             st.session_state["detail_summary"] = "Summary generation failed. Data loaded successfully."
 
@@ -105,24 +155,18 @@ with c_doc:
         with st.popover("🔍 See In-Detail Architecture"):
             st.markdown("""
             ### 🏗️ Complete System Architecture & Documentation
-            
-            InsightEngine is built on a state-of-the-art **Retrieval-Augmented Generation (RAG)** pipeline. This solves the primary issue with traditional LLMs: "Hallucinations" (making things up). By forcing the AI to read a retrieved text chunk before answering, accuracy reaches near 100%.
+            InsightEngine is built on a state-of-the-art **Retrieval-Augmented Generation (RAG)** pipeline. This solves the primary issue with traditional LLMs: "Hallucinations". By forcing the AI to read a retrieved text chunk before answering, accuracy reaches near 100%.
 
             **Phase 1: Ingestion & Processing**
             * **Document Loader (LangChain PyPDFLoader):** Extracts raw text from complex PDF layouts.
-            * **Semantic Chunking:** The AI cannot read a 500-page book in one go. We use a `RecursiveCharacterTextSplitter` to cut the document into 800-character blocks. We leave a 100-character overlap between blocks so sentences at the edges don't lose context.
+            * **Semantic Chunking:** We use a `RecursiveCharacterTextSplitter` to cut the document into 800-character blocks with a 100-character overlap so sentences at edges don't lose context.
             
             **Phase 2: Mathematical Embedding**
-            * **HuggingFace MiniLM-L6-v2:** We pass the text chunks through a neural network that converts words into complex numerical coordinates (Vectors). 
-            * **FAISS Vector Database:** Created by Meta, this database stores those numbers. When you ask a question, your question is also turned into numbers, and FAISS instantly finds the chunks that are mathematically closest to your question.
+            * **HuggingFace MiniLM-L6-v2:** Converts text chunks into complex numerical coordinates (Vectors). 
+            * **FAISS Vector Database:** Created by Meta, this database stores those numbers. Your question is also turned into numbers, and FAISS instantly finds the chunks that are mathematically closest.
 
             **Phase 3: Generation (Groq Llama 3)**
-            * Once the top 4 most relevant text blocks are found, they are bundled together and sent to the **Groq Llama 3** model. The prompt strictly instructs the AI: *"Using ONLY the provided text, answer the user's question."*
-            
-            **Use Cases:**
-            * **Legal:** Extracting specific clauses or liabilities from contracts.
-            * **Financial:** Summarizing earnings reports or identifying risk factors.
-            * **Academic:** Synthesizing literature reviews from massive research papers.
+            * The top 4 most relevant text blocks are bundled together and sent to the **Groq Llama 3** model. The prompt strictly instructs the AI: *"Using ONLY the provided text, answer the user's question."*
             """)
 
 with c_data:
@@ -150,7 +194,7 @@ with c_llm:
 with c_exp:
     with st.expander("💾 Export"):
         st.download_button("Download Last AI Response", st.session_state["last_response"], file_name="insight_export.txt")
-        if st.button("Reset Entire System"):
+        if st.button("Reset Entire System", type="primary"):
             st.session_state.clear()
             st.rerun()
 
@@ -161,64 +205,65 @@ with c_auth:
         st.markdown("✉️ [Contact via Email](mailto:kulkarnisiddhesh2626@gmail.com)")
         st.markdown("🌐 [LinkedIn Profile](https://www.linkedin.com/in/siddhesh-kulkarni-b2a600207/)")
 
-st.divider()
+# --- WORKSPACE CONTRAST SEPARATOR ---
+st.markdown("<hr class='workspace-divider'>", unsafe_allow_html=True)
+st.markdown("<div class='workspace-header'><h3>🧠 Workspace</h3></div>", unsafe_allow_html=True)
 
-# --- WORKSPACE & CHAT TABS ---
-col_ws, col_add, col_del = st.columns([0.6, 0.2, 0.2])
-with col_ws:
-    st.markdown("### 🧠 Workspace")
-with col_add:
-    if st.button("⊞ New Chat Window"):
-        st.session_state["chat_count"] += 1
-        st.rerun()
-with col_del:
-    if st.button("⊟ Close Chat Window"):
-        if st.session_state["chat_count"] > 1:
-            st.session_state["chat_count"] -= 1
+# --- GLOBAL WORKSPACE CONTROLS ---
+if st.session_state["vector_ready"]:
+    # 5-Column Layout: Summaries on left (closer together), New/Close Chat on right
+    c_crisp, c_detail, c_spacer, c_add, c_del = st.columns([0.15, 0.15, 0.4, 0.15, 0.15])
+    
+    with c_crisp:
+        with st.popover("📊 Crisp Summary"):
+            st.markdown(f"**Quick Overview:**")
+            st.write(st.session_state["crisp_summary"])
+            
+    with c_detail:
+        with st.popover("📑 In-Detail Summary"):
+            st.markdown(f"**Deep Dive Analysis:**")
+            st.markdown(st.session_state["detail_summary"])
+            
+    with c_add:
+        if st.button("⊞ New Chat", type="primary"):
+            st.session_state["chat_count"] += 1
             st.rerun()
-        else:
-            st.warning("Cannot close the primary workspace.")
-
-chat_tabs = st.tabs([f"Conversation {i+1}" for i in range(st.session_state["chat_count"])])
-
-def run_query(query):
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-    docs = db.similarity_search(query, k=4)
-    context = "\n\n".join([d.page_content for d in docs])
-    llm = ChatGroq(model_name=model_choice, temperature=ai_temp, groq_api_key=GROQ_API_KEY)
-    response = llm.invoke(f"Context: {context}\n\nQuestion: {query}")
-    st.session_state["last_response"] = response.content
-    return response.content
-
-# Populate Tabs
-for i, tab in enumerate(chat_tabs):
-    with tab:
-        if st.session_state["vector_ready"]:
-            # Feature: Split Layout for TWO Summary Buttons
-            c_crisp, c_detail, c_empty = st.columns([0.25, 0.25, 0.5])
             
-            with c_crisp:
-                with st.popover("📊 Crisp Summary"):
-                    st.markdown(f"**Quick Overview of:** {st.session_state['processed_source']}")
-                    st.write(st.session_state["crisp_summary"])
-            
-            with c_detail:
-                with st.popover("📑 In-Detail Summary"):
-                    st.markdown(f"**Deep Dive Analysis of:** {st.session_state['processed_source']}")
-                    st.markdown(st.session_state["detail_summary"])
-                    
-            st.markdown("---")
-            
-            # --- CHAT INTERFACE ---
-            # 1. Manual Input Box
+    with c_del:
+        if st.button("⊟ Close Chat", type="primary"):
+            if st.session_state["chat_count"] > 1:
+                st.session_state["chat_count"] -= 1
+                st.rerun()
+            else:
+                st.warning("Cannot close the primary workspace.")
+
+    st.write("") # Small spacer before tabs
+    
+    # --- CHAT TABS ---
+    chat_tabs = st.tabs([f"Conversation {i+1}" for i in range(st.session_state["chat_count"])])
+
+    def run_query(query):
+        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+        docs = db.similarity_search(query, k=4)
+        context = "\n\n".join([d.page_content for d in docs])
+        llm = ChatGroq(model_name=model_choice, temperature=ai_temp, groq_api_key=GROQ_API_KEY)
+        response = llm.invoke(f"Context: {context}\n\nQuestion: {query}")
+        st.session_state["last_response"] = response.content
+        return response.content
+
+    # Populate Tabs
+    for i, tab in enumerate(chat_tabs):
+        with tab:
+            # 1. Manual Input Box (Now features a darker border via CSS)
             user_q = st.text_input("💬 Type your custom question here and press Enter:", key=f"chat_input_{i}")
             
-            # 2. Suggested Clickable Questions
+            # 2. Suggested Clickable Questions (Now 10 options, transparent background)
             clicked_q = None
             with st.expander("🎯 Suggested Questions (Click to Auto-Run)", expanded=True):
+                # We use type="secondary" here so our custom CSS strips the background color
                 for j, q in enumerate(st.session_state["suggested_qs"]):
-                    if st.button(q, key=f"faq_{i}_{j}"):
+                    if st.button(q, key=f"faq_{i}_{j}", type="secondary"):
                         clicked_q = q
             
             # Run whichever input is provided
@@ -228,5 +273,5 @@ for i, tab in enumerate(chat_tabs):
                 with st.spinner("Finding the answer..."):
                     result = run_query(final_query)
                     st.success(f"**Question:** {final_query}\n\n**Answer:**\n{result}")
-        else:
-            st.info("👈 Please select a document from the 'Get Data' menu at the top to begin.")
+else:
+    st.info("👈 Please select a document from the 'Get Data' menu at the top to begin.")
