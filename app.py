@@ -49,12 +49,12 @@ with g_data_col:
         sample_choice = st.selectbox("Choose a sample:", ["None", "Tesla 2023 Annual Report", "AI Act Final Draft", "Bitcoin Whitepaper", "UN Climate Report"])
         
         # Logic for Sample Data 
-     samples = {
-         "Tesla 2023 Annual Report": "samples/tesla_2023.pdf",
-         "AI Act Final Draft": "samples/ai_act.pdf",
-         "Bitcoin Whitepaper": "samples/bitcoin.pdf",
-         "UN Climate Report": "samples/un_climate.pdf"
-     }
+        samples = {
+            "Tesla 2023 Annual Report": "samples/tesla_2023.pdf",
+            "AI Act Final Draft": "samples/ai_act.pdf",
+            "Bitcoin Whitepaper": "samples/bitcoin.pdf",
+            "UN Climate Report": "samples/un_climate.pdf"
+        }
         
         process_button = st.button("🚀 Initialize Index")
         
@@ -87,7 +87,7 @@ with st.expander("📘 Documentation & Architecture"):
         * **Academia:** Literature review synthesis.
         """)
     with tab_arch:
-        st.markdown("1. PDF Ingestion → 2. Recursive Chunking → 3. HF Embeddings → 4. FAISS Index → 5. Groq Llama-3 Reasoning")
+        st.markdown("1. PDF Ingestion → 2. Recursive Chunking → 3. HF Embeddings → 4. FAISS Index → 5. Groq Llama Reasoning")
 
 st.divider()
 
@@ -98,7 +98,11 @@ with st.expander("⚙️ LLM Parameters"):
         ai_temp = st.slider("Temperature (Creativity)", 0.0, 1.0, 0.1)
         st.caption("Lower = Factual, Higher = Creative")
     with c2:
-        model_choice = st.selectbox("Model", ["llama3-8b-8192", "llama3-70b-8192"])
+        # UPDATED: Replaced deprecated models with current active Groq models
+        model_choice = st.selectbox(
+            "Model", 
+            ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
+        )
         st.caption("70b is smarter but has lower rate limits.")
 
 # --- PROCESSING LOGIC ---
@@ -138,6 +142,8 @@ def run_query(query):
     db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
     docs = db.similarity_search(query, k=4)
     context = "\n\n".join([d.page_content for d in docs])
+    
+    # This now uses the updated model_choice from the dropdown
     llm = ChatGroq(model_name=model_choice, temperature=ai_temp, groq_api_key=GROQ_API_KEY)
     response = llm.invoke(f"Context: {context}\n\nQuestion: {query}")
     st.session_state["last_response"] = response.content
@@ -145,15 +151,4 @@ def run_query(query):
 
 with chat_tab1:
     if st.session_state["vector_ready"]:
-        q1 = st.text_input("Query Alpha:", key="q1")
-        if q1: st.success(run_query(q1))
-    else: st.info("Initialize data to start.")
-
-with chat_tab2:
-    if st.session_state["vector_ready"]:
-        q2 = st.text_input("Query Beta:", key="q2")
-        if q2: st.info(run_query(q2))
-    else: st.info("Initialize data to start.")
-
-with chat_tab3:
-    st.markdown("Compare results from Alpha and Beta sequences here.")
+        q1 = st.text_input("Query Alpha:", key="q
