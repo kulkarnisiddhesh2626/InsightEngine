@@ -1,5 +1,13 @@
-venv/
-__pycache__/
-temp.pdf
-faiss_index/
+# Environments
 .env
+venv/
+env/
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# App generated files
+faiss_index/
+temp.pdf
+__pycache__/
+*.pyc
