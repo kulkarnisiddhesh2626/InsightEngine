@@ -48,13 +48,13 @@ with g_data_col:
         st.markdown("**2. Sample Datasets**")
         sample_choice = st.selectbox("Choose a sample:", ["None", "Tesla 2023 Annual Report", "AI Act Final Draft", "Bitcoin Whitepaper", "UN Climate Report"])
         
-        # Logic for Sample Data (Update paths as needed)
-        samples = {
-            "Tesla 2023 Annual Report": "samples/tesla_2023.pdf",
-            "AI Act Final Draft": "samples/ai_act.pdf",
-            "Bitcoin Whitepaper": "samples/bitcoin.pdf",
-            "UN Climate Report": "samples/un_climate.pdf"
-        }
+        # Logic for Sample Data 
+     samples = {
+         "Tesla 2023 Annual Report": "samples/tesla_2023.pdf",
+         "AI Act Final Draft": "samples/ai_act.pdf",
+         "Bitcoin Whitepaper": "samples/bitcoin.pdf",
+         "UN Climate Report": "samples/un_climate.pdf"
+     }
         
         process_button = st.button("🚀 Initialize Index")
         
