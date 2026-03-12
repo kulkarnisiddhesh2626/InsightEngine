@@ -8,48 +8,23 @@ from langchain_groq import ChatGroq
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # --- PAGE CONFIGURATION ---
-st.set_page_config(page_title="InsightEngine", page_icon="💠", layout="wide")
+st.set_page_config(page_title="InsightEngine Elite", page_icon="💠", layout="wide")
 
-# --- CUSTOM CSS: THE "SAFFRON & SLATE" THEME ---
+# --- CUSTOM CSS: PREMIUM UI ---
 st.markdown("""
 <style>
-    /* Gradient Background: Light Yellow to Light Orange */
-    .stApp {
-        background: linear-gradient(135deg, #FFFDE4 0%, #FFE5B4 100%) !important;
-    }
-
-    /* Top-Nav Simulation (Removing Sidebar padding) */
-    [data-testid="stSidebar"] {
-        display: none;
-    }
+    .stApp { background: linear-gradient(135deg, #FFFDE4 0%, #FFE5B4 100%) !important; }
+    [data-testid="stSidebar"] { display: none; }
+    .stMarkdown, p, span, div, label, .stText { color: #2F4F4F !important; }
+    h1, h2, h3 { color: #D35400 !important; font-weight: 800 !important; }
     
-    /* Global Text: Dark Slate */
-    .stMarkdown, p, span, div, label, .stText {
-        color: #2F4F4F !important;
-    }
-
-    /* Professional Headers */
-    h1, h2, h3 {
-        color: #D35400 !important;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        font-weight: 800 !important;
-    }
-
-    /* Export Button Positioning (Top Right) */
-    .export-container {
-        position: absolute;
-        top: 0px;
-        right: 0px;
-        z-index: 999;
-    }
-
-    /* High-Contrast Professional Buttons */
+    /* Buttons */
     .stButton > button {
         background-color: #D35400 !important; 
         color: #FFFFFF !important;      
         border-radius: 8px !important;
-        border: none !important;
         font-weight: bold;
+        width: 100%;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -57,82 +32,74 @@ st.markdown("""
 # --- SESSION STATE ---
 if "vector_ready" not in st.session_state: st.session_state["vector_ready"] = False
 if "raw_text" not in st.session_state: st.session_state["raw_text"] = ""
-if "last_response" not in st.session_state: st.session_state["last_response"] = "No data yet."
+if "last_response" not in st.session_state: st.session_state["last_response"] = "No queries yet."
 
-# --- TOP BAR: EXPORT & BRANDING ---
-col_title, col_export = st.columns([0.8, 0.2])
-with col_title:
-    st.title("💠 InsightEngine // Elite")
-with col_export:
-    st.download_button(
-        label="📥 Export Last Intelligence",
-        data=st.session_state["last_response"],
-        file_name="insight_export.txt",
-        mime="text/plain",
-    )
+# --- HEADER LAYOUT (TITLE & 3 TOP-RIGHT DROPDOWNS) ---
+header_col, g_data_col, exp_col, auth_col = st.columns([0.4, 0.2, 0.2, 0.2])
 
-# --- NEW TOP-DOWN NAVIGATION (SIMULATED SIDEBAR) ---
-st.markdown("### 🛠️ Strategic Control Center")
-with st.expander("📂 Control Panel & Configuration", expanded=False):
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown("#### 💠 Model Tuning")
-        ai_temp = st.slider("Temperature", 0.0, 1.0, 0.1)
-        with st.popover("❔ How this works"):
-            st.write("**Temperature** controls randomness.")
-            st.write("* **0.1 (Strict):** Best for technical manuals, medical data, and legal PDFs.")
-            st.write("* **0.8 (Creative):** Best for summarizing stories or brainstorming marketing copy.")
-    
-    with c2:
-        st.markdown("#### 💠 Document Ingestion")
-        uploaded_file = st.file_uploader("Upload PDF Payload", type="pdf", label_visibility="collapsed")
-        process_button = st.button("🚀 Initialize Neural Index")
+with header_col:
+    st.title("💠 InsightEngine")
+
+with g_data_col:
+    with st.expander("📥 Get Data"):
+        st.markdown("**1. Upload Your Own**")
+        uploaded_file = st.file_uploader("Upload PDF", type="pdf", label_visibility="collapsed")
         
-    with c3:
-        st.markdown("#### 💠 System Guardrails")
-        max_tokens = st.select_slider("Response Depth", options=[256, 512, 1024, 2048], value=1024)
-        with st.popover("❔ Understanding Depth"):
-            st.write("Limits the length of the AI's output to prevent 'rambling' and save API credits.")
+        st.markdown("**2. Sample Datasets**")
+        sample_choice = st.selectbox("Choose a sample:", ["None", "Tesla 2023 Annual Report", "AI Act Final Draft", "Bitcoin Whitepaper", "UN Climate Report"])
+        
+        # Logic for Sample Data (Update paths as needed)
+        samples = {
+            "Tesla 2023 Annual Report": "samples/tesla_2023.pdf",
+            "AI Act Final Draft": "samples/ai_act.pdf",
+            "Bitcoin Whitepaper": "samples/bitcoin.pdf",
+            "UN Climate Report": "samples/un_climate.pdf"
+        }
+        
+        process_button = st.button("🚀 Initialize Index")
+        
+        st.divider()
+        with st.popover("👀 Data Preview"):
+            st.text_area("Live Stream", st.session_state["raw_text"][:1000], height=200)
 
-# --- MIDDLE SECTION: INFORMATION HUB ---
-tab1, tab2, tab3, tab4 = st.tabs(["📘 About", "🏗️ Architecture", "📝 Preview", "👨‍💻 Author"])
+with exp_col:
+    with st.expander("📤 Export"):
+        st.download_button("Download Last Response", st.session_state["last_response"], file_name="insight_export.txt")
+        if st.button("🚨 Reset System"):
+            st.session_state.clear()
+            st.rerun()
 
-with tab1:
-    st.markdown("""
-    ### 💠 High-Fidelity Retrieval Augmented Generation (RAG)
-    InsightEngine is a professional-grade intelligence tool designed to bridge the gap between static documents and actionable insights. Unlike standard LLMs, it uses **Semantic Chunking** to ensure the bot doesn't just read words, but understands context.
-    
-    **🎯 Strategic Usecases:**
-    * **Legal Discovery:** Cross-reference clauses across 100+ page contracts in seconds.
-    * **Academic Synthesis:** Analyze research papers for methodology vs. results instantly.
-    * **Financial Audits:** Extract quarterly earnings trends from complex annual reports.
-    * **Technical Support:** Convert dense hardware manuals into a searchable troubleshooting bot.
-    """)
+with auth_col:
+    with st.expander("👨‍💻 Author"):
+        st.markdown("**Created by:** Siddhesh Kulkarni")
+        st.markdown("📧 [kulkarnisiddhesh2626@gmail.com](mailto:kulkarnisiddhesh2626@gmail.com)")
+        st.markdown("🔗 [LinkedIn Profile](https://www.linkedin.com/in/siddhesh-kulkarni-b2a600207/)")
+        st.markdown("💻 [GitHub](https://github.com/kulkarnisiddhesh2626)")
 
-with tab2:
-    st.markdown("### 🏗️ Advanced Neural Pipeline")
-    
-    st.markdown("""
-    1. **Preprocessing:** PDF is loaded via `PyPDFLoader` and cleaned of artifacts.
-    2. **Granular Chunking:** `RecursiveCharacterTextSplitter` creates overlapping segments (800 chars) to maintain narrative flow.
-    3. **Vectorization:** `HuggingFace (all-MiniLM-L6-v2)` transforms text into 384-dimensional mathematical vectors.
-    4. **Indexing:** `FAISS` (Facebook AI Similarity Search) builds a high-speed local vector database.
-    5. **Synthesis:** `Llama-3-8b` via **Groq LPUs** performs high-speed reasoning on retrieved context.
-    """)
-
-with tab3:
-    st.text_area("Live Data Stream", st.session_state["raw_text"][:2000], height=250, placeholder="Preview will appear after indexing...")
-
-with tab4:
-    st.markdown("### 💠 Author Intelligence")
-    st.info("""
-    **Name:** Siddhesh  
-    **Email:** [Your Email ID]  
-    **Professional Profile:** [LinkedIn Link]  
-    *Expertise in Agentic RAG Systems and Local LLM Deployment.*
-    """)
+# --- MAIN DOCUMENTATION DROPDOWN ---
+with st.expander("📘 Documentation & Architecture"):
+    tab_about, tab_arch = st.tabs(["About InsightEngine", "Neural Architecture"])
+    with tab_about:
+        st.markdown("""
+        InsightEngine uses **Agentic RAG** to solve complex information retrieval tasks.
+        * **Legal:** Instant clause extraction.
+        * **Finance:** Financial statement analysis.
+        * **Academia:** Literature review synthesis.
+        """)
+    with tab_arch:
+        st.markdown("1. PDF Ingestion → 2. Recursive Chunking → 3. HF Embeddings → 4. FAISS Index → 5. Groq Llama-3 Reasoning")
 
 st.divider()
+
+# --- LLM PARAMETERS (Top Control) ---
+with st.expander("⚙️ LLM Parameters"):
+    c1, c2 = st.columns(2)
+    with c1:
+        ai_temp = st.slider("Temperature (Creativity)", 0.0, 1.0, 0.1)
+        st.caption("Lower = Factual, Higher = Creative")
+    with c2:
+        model_choice = st.selectbox("Model", ["llama3-8b-8192", "llama3-70b-8192"])
+        st.caption("70b is smarter but has lower rate limits.")
 
 # --- PROCESSING LOGIC ---
 try:
@@ -141,43 +108,52 @@ except:
     st.error("Missing GROQ_API_KEY in Secrets.")
     st.stop()
 
-if uploaded_file and process_button:
-    with st.status("💠 Building Intelligence Matrix...", expanded=True) as status:
-        with open("temp.pdf", "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        st.write("Reading PDF...")
-        loader = PyPDFLoader("temp.pdf")
+# Helper to process file
+def process_pdf(source):
+    with st.status("💠 Processing Knowledge...", expanded=True) as status:
+        loader = PyPDFLoader(source)
         data = loader.load()
         st.session_state["raw_text"] = "\n".join([p.page_content for p in data])
-        
-        st.write("Chunking Text...")
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
         chunks = text_splitter.split_documents(data)
-        
-        st.write("Generating Embeddings...")
         embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         vectorstore = FAISS.from_documents(chunks, embeddings)
         vectorstore.save_local("faiss_index")
-        
         st.session_state["vector_ready"] = True
-        status.update(label="✅ System Ready", state="complete")
+        status.update(label="✅ Ready", state="complete")
 
-# --- CHAT INTERFACE ---
-if st.session_state["vector_ready"]:
-    user_query = st.text_input("💠 Query the Knowledge Base:")
-    if user_query:
-        with st.spinner("💠 Synthesizing Answer..."):
-            embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-            db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-            docs = db.similarity_search(user_query, k=4)
-            context = "\n\n".join([d.page_content for d in docs])
-            
-            llm = ChatGroq(model_name="llama3-8b-8192", temperature=ai_temp, groq_api_key=GROQ_API_KEY)
-            prompt = f"System: You are an elite analyst. Use the context to answer precisely.\nContext: {context}\nQuestion: {user_query}"
-            
-            response = llm.invoke(prompt)
-            st.session_state["last_response"] = f"Query: {user_query}\n\nAnswer: {response.content}"
-            st.markdown("### 🧠 Result:")
-            st.success(response.content)
-else:
-    st.info("💠 Upload a document and initialize the engine to begin.")
+if process_button:
+    if uploaded_file:
+        with open("temp.pdf", "wb") as f: f.write(uploaded_file.getbuffer())
+        process_pdf("temp.pdf")
+    elif sample_choice != "None":
+        process_pdf(samples[sample_choice])
+
+# --- MULTI-CHAT INTERFACE ---
+st.markdown("### 🧠 Workspace")
+chat_tab1, chat_tab2, chat_tab3 = st.tabs(["Chat Sequence Alpha", "Chat Sequence Beta", "Comparison View"])
+
+def run_query(query):
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+    docs = db.similarity_search(query, k=4)
+    context = "\n\n".join([d.page_content for d in docs])
+    llm = ChatGroq(model_name=model_choice, temperature=ai_temp, groq_api_key=GROQ_API_KEY)
+    response = llm.invoke(f"Context: {context}\n\nQuestion: {query}")
+    st.session_state["last_response"] = response.content
+    return response.content
+
+with chat_tab1:
+    if st.session_state["vector_ready"]:
+        q1 = st.text_input("Query Alpha:", key="q1")
+        if q1: st.success(run_query(q1))
+    else: st.info("Initialize data to start.")
+
+with chat_tab2:
+    if st.session_state["vector_ready"]:
+        q2 = st.text_input("Query Beta:", key="q2")
+        if q2: st.info(run_query(q2))
+    else: st.info("Initialize data to start.")
+
+with chat_tab3:
+    st.markdown("Compare results from Alpha and Beta sequences here.")
