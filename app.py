@@ -61,7 +61,8 @@ def process_pdf(source_path, source_name):
         st.session_state["processed_source"] = source_name
 
 with g_data_col:
-    with st.expander("Get Data", help="Upload your own file or pick a sample to start analyzing."):
+    # Removed the invalid 'help' parameter from expander
+    with st.expander("Get Data"):
         st.markdown("**1. Upload Your Own**")
         uploaded_file = st.file_uploader("Upload PDF", type="pdf", label_visibility="collapsed")
         
@@ -92,8 +93,8 @@ with g_data_col:
             st.rerun()
 
         st.divider()
-        # 3. Feature: Data Preview
-        with st.popover("Preview Loaded Data", help="Click to see the raw text the AI is currently reading."):
+        # 3. Feature: Data Preview (removed help param to be safe)
+        with st.popover("Preview Loaded Data"):
             if st.session_state["vector_ready"]:
                 st.success(f"Currently analyzing: {st.session_state['processed_source']}")
                 st.text_area("Document Text Preview", st.session_state["raw_text"][:2500] + "...\n\n(Text truncated for preview)", height=300)
@@ -101,6 +102,7 @@ with g_data_col:
                 st.info("Please select or upload data first.")
 
 with exp_col:
+    # Removed the invalid 'help' parameter from expander
     with st.expander("Export"):
         st.download_button("Download Last Response", st.session_state["last_response"], file_name="insight_export.txt", help="Save the AI's last answer to your computer as a text file.")
         if st.button("Reset System", help="Clear all data and start over."):
@@ -108,7 +110,8 @@ with exp_col:
             st.rerun()
 
 with auth_col:
-    with st.expander("Author", help="Information about the creator."):
+    # Removed the invalid 'help' parameter from expander
+    with st.expander("Author"):
         st.markdown("**Created by:** Siddhesh Kulkarni")
         st.markdown("**Email:** [kulkarnisiddhesh2626@gmail.com](mailto:kulkarnisiddhesh2626@gmail.com)")
         st.markdown("**LinkedIn:** [Profile Link](https://www.linkedin.com/in/siddhesh-kulkarni-b2a600207/)")
@@ -120,7 +123,8 @@ st.divider()
 doc_col, param_col = st.columns(2)
 
 with doc_col:
-    with st.expander("Documentation & Architecture", help="Learn how this application actually works behind the scenes."):
+    # Removed the invalid 'help' parameter from expander
+    with st.expander("Documentation & Architecture"):
         tab_about, tab_arch = st.tabs(["About InsightEngine", "How It Works (Architecture)"])
         with tab_about:
             st.markdown("""
@@ -140,11 +144,12 @@ with doc_col:
             2. **Slicing (Chunking):** Since AI can't read a whole book in one glance, we slice the text into small, readable paragraphs.
             3. **Translating (Embeddings):** The system translates these paragraphs into numbers (vectors) that the computer can easily sort and search.
             4. **Filing Cabinet (FAISS):** These numbers are stored in a highly efficient local database.
-            5. **Thinking (LLM):** When you ask a question, the system finds the most relevant "slices" from the filing cabinet and sends them to a massive cloud AI (Groq Llama 3) to construct a human-like answer.
+            5. **Thinking (LLM):** When you ask a question, the system finds the most relevant "slices" from the filing cabinet and sends them to a massive cloud AI (Groq Llama) to construct a human-like answer.
             """)
 
 with param_col:
-    with st.expander("LLM Parameters (Settings)", help="Tweak the AI's behavior to suit your needs."):
+    # Removed the invalid 'help' parameter from expander
+    with st.expander("LLM Parameters (Settings)"):
         st.markdown("**1. Temperature (Creativity Dial)**")
         ai_temp = st.slider("Select Temperature", 0.0, 1.0, 0.1, label_visibility="collapsed")
         st.markdown("""
